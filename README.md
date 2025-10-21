@@ -1,50 +1,44 @@
 # Streaming with Flink & Spark
 
-A complete streaming data platform for processing clickstream events using Apache Flink and Apache Spark.
+A repo to explore different streaming mechanisms: Kafka, Flink, and Spark.
+The main goal is to understand the core components of Flink and Spark in streaming pipelines and how each serves a different purpose.
 
 ## Quick Start
 
-### 1. Start All Services
+### 1. Start services
 
 ```bash
 docker compose up -d
 ```
 
-This starts:
-- **Kafka** - Message broker (port 9092)
-- **Schema Registry** - Avro schema management (port 8081)
-- **MinIO** - S3-compatible object storage (ports 9000, 9001)
-- **Kafka UI** - Web interface (port 8080)
-- **Producer Container** - Python environment with dependencies
+What starts:
+- Kafka (port 9092) - message broker
+- Schema Registry (port 8081) - manages Avro schemas
+- MinIO (ports 9000, 9001) - S3-compatible storage
+- Kafka UI (port 8080) - web UI to browse topics/messages
+- Producer container - has Python + dependencies installed
 
-### 2. Start Producing Data (New User Onboarding)
+### 2. Generate test data
 
-Use the onboarding script for a guided setup:
+**Easy way** - run the onboarding script:
 
 ```bash
 ./shared/data-generator/start-producer.sh
 ```
 
-The script will:
-- ✅ Check prerequisites (Docker, Docker Compose)
-- ✅ Verify services are running
-- ✅ Create Kafka topics if needed
-- ✅ Start the producer with your preferred mode
+It checks prerequisites, starts services, creates topics, and lets you pick how to run the producer.
 
-**Alternative**: Manual start
+**Manual way** - run the producer directly:
 
 ```bash
 docker exec -it clickstream-producer python3 produce-test-events.py
 ```
 
-### 3. Verify Data is Flowing
+### 3. Check if data is flowing
 
-**Web UI** (easiest):
-```bash
-open http://localhost:8080
-```
+Open Kafka UI: http://localhost:8080
 
-**Command line**:
+Or use command line:
 ```bash
 docker exec kafka kafka-console-consumer \
   --bootstrap-server localhost:9092 \
@@ -53,7 +47,7 @@ docker exec kafka kafka-console-consumer \
   --max-messages 10
 ```
 
-## Architecture
+## How it works
 
 ```
 ┌──────────────┐
@@ -105,131 +99,104 @@ streaming-with-flink-spark/
     └── src/
 ```
 
-## Producer Features
+## What data gets generated
 
-The clickstream producer generates realistic e-commerce user behavior:
+The producer simulates e-commerce user behavior:
 
-- **Event Types**: VIEW, ADD_TO_CART, REMOVE_FROM_CART, CHECKOUT, PURCHASE
-- **Rate**: 10 events/second (configurable)
-- **Users**: 100 simulated users with session tracking
-- **Products**: 50 products across 5 categories
-- **Late Data**: 5% of events arrive 10-120 seconds late (for watermark testing)
-- **Out-of-Order Events**: Realistic event timing scenarios
+- **Events**: VIEW, ADD_TO_CART, REMOVE_FROM_CART, CHECKOUT, PURCHASE
+- **Rate**: 10 events/sec (you can change this)
+- **Users**: 100 fake users with shopping sessions
+- **Products**: 50 products in 5 categories
+- **Late data**: 5% of events arrive 10-120 seconds late (good for testing watermarks)
+- **Out-of-order**: Events don't always arrive in order (realistic scenario)
 
-## Frequently Used Commands
+## Common commands
 
-### Service Management
+### Services
 
 ```bash
-# Start all services
-docker compose up -d
-
-# Stop all services
-docker compose down
-
-# View service status
-docker compose ps
-
-# View logs
-docker compose logs -f [service_name]
+docker compose up -d              # Start everything
+docker compose down               # Stop everything
+docker compose ps                 # Check what's running
+docker compose logs -f producer   # View logs
 ```
 
-### Producer Control
+### Producer
 
 ```bash
-# Interactive mode (see live output)
+# Start producer (see live output, Ctrl+C to stop)
 docker exec -it clickstream-producer python3 produce-test-events.py
 
-# Background mode
+# Start in background
 docker exec -d clickstream-producer python3 produce-test-events.py
 
 # Stop producer
 docker exec clickstream-producer pkill -f produce-test-events.py
-
-# View producer logs
-docker compose logs -f producer
 ```
 
-### Kafka Operations
+### Kafka
 
 ```bash
 # List topics
 docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
 
-# Describe topic
-docker exec kafka kafka-topics --describe --topic clickstream --bootstrap-server localhost:9092
-
-# Consume messages
+# Read messages from topic
 docker exec kafka kafka-console-consumer \
   --bootstrap-server localhost:9092 \
   --topic clickstream \
   --from-beginning
 ```
 
-### Container Access
+### Jump into containers
 
 ```bash
-# Enter producer container
-docker exec -it clickstream-producer bash
-
-# Enter Kafka container
-docker exec -it kafka bash
+docker exec -it clickstream-producer bash  # Producer
+docker exec -it kafka bash                 # Kafka
 ```
 
-## Web Interfaces
+## Web UIs
 
-- **Kafka UI**: http://localhost:8080 - Browse topics, messages, consumer groups
-- **MinIO Console**: http://localhost:9001 - Object storage (admin/password123)
-- **Schema Registry**: http://localhost:8081 - API endpoint
+- Kafka UI: http://localhost:8080 - browse topics and messages
+- MinIO Console: http://localhost:9001 - view stored files (login: admin/password123)
+- Schema Registry: http://localhost:8081/subjects - view registered schemas
 
-## Documentation
+## More docs
 
-- **Producer Setup**: `kafka/README.md`
-- **Data Generator**: `shared/data-generator/README.md`
-- **Quick Reference**: `shared/data-generator/QUICK_REFERENCE.md`
+- Producer details: `kafka/README.md`
+- Data generator guide: `shared/data-generator/README.md`
+- Command cheatsheet: `shared/data-generator/QUICK_REFERENCE.md`
 
-## Troubleshooting
+## Common issues
 
-### Services won't start
-
+**Services won't start**
 ```bash
-# Check Docker is running
-docker ps
-
-# Check logs for errors
-docker compose logs [service_name]
-
-# Restart services
-docker compose restart
+docker ps                          # Is Docker running?
+docker compose logs kafka          # Check for errors
+docker compose restart kafka       # Restart if needed
 ```
 
-### Producer connection timeout
-
+**Producer timeout error**
 ```bash
-# Check Kafka health (should be "healthy")
+# Check if Kafka is healthy (takes 30-60 sec to start)
 docker inspect -f '{{.State.Health.Status}}' kafka
 
-# Wait 30-60 seconds for Kafka to start
-# Or restart Kafka
+# Should show "healthy". If not, wait or restart:
 docker compose restart kafka
 ```
 
-### Topics missing
-
+**Topic doesn't exist**
 ```bash
 # Create topics
 docker compose up kafka-setup
 
-# Verify topics exist
+# Check if they exist
 docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
 ```
 
-## Next Steps
+## What to learn next
 
-1. ✅ Start services
-2. ✅ Generate data
-3. 🔄 Build Flink streaming jobs
-4. 🔄 Create Spark batch jobs
-5. 🔄 Set up monitoring with Prometheus/Grafana
-
-Happy streaming! 🚀
+1. Start services ✅
+2. Generate test data ✅
+3. Build Flink streaming jobs (real-time processing)
+4. Build Spark batch jobs (historical analysis)
+5. Add monitoring (Prometheus/Grafana)

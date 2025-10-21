@@ -1,0 +1,26 @@
+# monitoring/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Kafka JMX metrics
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9997']
+    
+  # Flink metrics (will add after Flink setup)
+  - job_name: 'flink'
+    static_configs:
+      - targets: ['localhost:9250']
+
+  # Spark metrics via pushgateway
+  - job_name: 'spark-streaming'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+
+  # System metrics
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

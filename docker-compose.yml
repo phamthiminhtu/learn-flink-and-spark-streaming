@@ -1,0 +1,212 @@
+# docker-compose.yml (FINAL WORKING VERSION)
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka
+    container_name: kafka
+    user: root
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    networks:
+      - streaming-network
+    command: >
+      bash -c "
+      mkdir -p /tmp/kraft-combined-logs;
+      chmod -R 777 /tmp/kraft-combined-logs;
+      
+      if [ ! -f /tmp/kraft-combined-logs/meta.properties ]; then
+        echo 'Formatting Kafka storage...';
+        kafka-storage format -t MkU3OEVBNTcwNTJENDM2Qk -c /etc/kafka/docker/server.properties;
+        echo 'Format complete';
+      fi
+      
+      /etc/confluent/docker/run
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - streaming-network
+
+  kafka-setup:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-setup
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -c "
+      sleep 15 &&
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic clickstream --partitions 3 --replication-factor 1 &&
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic clickstream-dlq --partitions 1 --replication-factor 1 &&
+      echo 'Topics created!' &&
+      kafka-topics --list --bootstrap-server kafka:29092
+      "
+    networks:
+      - streaming-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - streaming-network
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      mc alias set myminio http://minio:9000 admin password123;
+      mc mb myminio/lakehouse --ignore-existing;
+      mc mb myminio/checkpoints --ignore-existing;
+      echo 'MinIO ready';
+      exit 0;
+      "
+    networks:
+      - streaming-network
+  # ============================================
+  # SCHEMA REGISTRY (Avro Schema Management)
+  # ============================================
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry
+    hostname: schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+      SCHEMA_REGISTRY_SCHEMA_REGISTRY_GROUP_ID: 'schema-registry'
+      
+      # Compatibility Settings
+      SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL: 'backward'
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: 'WARN'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streaming-network
+
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus-data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #   networks:
+  #     - streaming-network
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     GF_SECURITY_ADMIN_USER: admin
+  #     GF_SECURITY_ADMIN_PASSWORD: admin
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #   networks:
+  #     - streaming-network
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - streaming-network
+
+  # ============================================
+  # CLICKSTREAM EVENT PRODUCER
+  # ============================================
+  producer:
+    image: python:3.11-slim
+    container_name: clickstream-producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./kafka:/app
+    working_dir: /app
+    command: >
+      bash -c "
+      pip install --no-cache-dir kafka-python lz4 &&
+      tail -f /dev/null
+      "
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    networks:
+      - streaming-network
+    restart: unless-stopped
+
+volumes:
+  kafka-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  streaming-network:
+    driver: bridge

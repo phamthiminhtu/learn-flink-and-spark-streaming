@@ -1,0 +1,4 @@
+{
+  "schema": "{\"type\":\"record\",\"name\":\"ClickstreamEvent\",\"namespace\":\"com.streaming.events\",\"fields\":[{\"name\":\"event_id\",\"type\":\"string\"},{\"name\":\"user_id\",\"type\":\"string\"},{\"name\":\"session_id\",\"type\":\"string\"},{\"name\":\"event_type\",\"type\":\"string\"},{\"name\":\"page_url\",\"type\":\"string\"},{\"name\":\"timestamp\",\"type\":\"long\",\"logicalType\":\"timestamp-millis\"},{\"name\":\"ip_address\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"user_agent\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"referrer\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"country\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"device_type\",\"type\":[\"null\",\"string\"],\"default\":null}]}"
+}
+

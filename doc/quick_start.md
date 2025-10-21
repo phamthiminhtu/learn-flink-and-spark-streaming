@@ -52,3 +52,86 @@ The producer simulates e-commerce user behavior:
 - **Products**: 50 products in 5 categories
 - **Late data**: 5% of events arrive 10-120 seconds late (good for testing watermarks)
 - **Out-of-order**: Events don't always arrive in order (realistic scenario)
+
+## Common commands
+
+### Services
+
+```bash
+docker compose up -d              # Start everything
+docker compose down               # Stop everything
+docker compose ps                 # Check what's running
+docker compose logs -f producer   # View logs
+```
+
+### Producer
+
+```bash
+# Start producer (see live output, Ctrl+C to stop)
+docker exec -it clickstream-producer python3 produce-test-events.py
+
+# Start in background
+docker exec -d clickstream-producer python3 produce-test-events.py
+
+# Stop producer
+docker exec clickstream-producer pkill -f produce-test-events.py
+```
+
+### Kafka
+
+```bash
+# List topics
+docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
+
+# Read messages from topic
+docker exec kafka kafka-console-consumer \
+  --bootstrap-server localhost:9092 \
+  --topic clickstream \
+  --from-beginning
+```
+
+### Jump into containers
+
+```bash
+docker exec -it clickstream-producer bash  # Producer
+docker exec -it kafka bash                 # Kafka
+```
+
+## Web UIs
+
+- Kafka UI: http://localhost:8080 - browse topics and messages
+- MinIO Console: http://localhost:9001 - view stored files (login: admin/password123)
+- Schema Registry: http://localhost:8081/subjects - view registered schemas
+
+## More docs
+
+- Producer details: `kafka/README.md`
+- Data generator guide: `shared/data-generator/README.md`
+- Command cheatsheet: `shared/data-generator/QUICK_REFERENCE.md`
+
+## Common issues
+
+**Services won't start**
+```bash
+docker ps                          # Is Docker running?
+docker compose logs kafka          # Check for errors
+docker compose restart kafka       # Restart if needed
+```
+
+**Producer timeout error**
+```bash
+# Check if Kafka is healthy (takes 30-60 sec to start)
+docker inspect -f '{{.State.Health.Status}}' kafka
+
+# Should show "healthy". If not, wait or restart:
+docker compose restart kafka
+```
+
+**Topic doesn't exist**
+```bash
+# Create topics
+docker compose up kafka-setup
+
+# Check if they exist
+docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
+```

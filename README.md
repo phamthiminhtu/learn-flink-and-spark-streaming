@@ -56,7 +56,6 @@ streaming-with-flink-spark/
 │   │   ├── start-producer.sh   # 🌟 New user script
 │   │   ├── README.md
 │   │   └── QUICK_REFERENCE.md
-│   ├── schemas/
 │   └── tests/
 └── spark/                      # Spark jobs
     ├── requirements.txt

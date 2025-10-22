@@ -41,7 +41,7 @@ class ClickstreamEvent:
     event_type: str
     product_id: str
     price: float
-    event_time: int  # Unix timestamp milliseconds
+    timestamp: int  # Unix timestamp milliseconds
     processing_time: int  # Unix timestamp milliseconds
 
     def to_dict(self) -> Dict:
@@ -182,7 +182,7 @@ class EventGenerator:
             event_type=event_type,
             product_id=product_id,
             price=price,
-            event_time=int(event_time.timestamp() * 1000),
+            timestamp=int(event_time.timestamp() * 1000),
             processing_time=int(processing_time.timestamp() * 1000)
         )]
         
@@ -200,7 +200,7 @@ class EventGenerator:
                     event_type='PURCHASE',
                     product_id=cart_product_id,
                     price=cart_price,
-                    event_time=int(event_time.timestamp() * 1000),
+                    timestamp=int(event_time.timestamp() * 1000),
                     processing_time=int(processing_time.timestamp() * 1000)
                 ))
             session.cart_items.clear()

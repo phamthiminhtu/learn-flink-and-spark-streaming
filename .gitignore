@@ -1,0 +1,13 @@
+**/.DS_Store
+**/.idea
+**/.vscode
+**/*.pyc
+**/.pytest_cache
+**/.pytest_cache/**
+**/.pytest_cache/v/cache/lastfailed
+**/.pytest_cache/v/cache/nodeids
+**/.pytest_cache/v/cache/stepcache
+**/.pytest_cache/v/cache/stepcache/**
+**/.pytest_cache/v/cache/stepcache/stepcache.json
+**/.pytest_cache/v/cache/stepcache/stepcache.json.json
+**/.pytest_cache/v/cache/stepcache/stepcache.json.json.json

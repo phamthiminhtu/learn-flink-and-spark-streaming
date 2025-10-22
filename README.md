@@ -7,8 +7,8 @@ The main goal is to understand the core components of Flink and Spark in streami
 
 1. Start services ✅
 2. Generate test data ✅
-3. Build Flink streaming jobs (real-time processing)
-4. Build Spark batch jobs (historical analysis)
+3. Build Spark micro batch jobs (30s latency) ✅
+4. Build Flink streaming jobs (real-time processing)
 5. Add monitoring (Prometheus/Grafana)
 
 ## How it works
@@ -23,9 +23,9 @@ The main goal is to understand the core components of Flink and Spark in streami
 │    Kafka     │ → Message broker
 └──────┬───────┘
        │
-       ├─► Flink  → Real-time stream processing
+       ├─► Flink
        │
-       └─► Spark  → Batch processing & analytics
+       └─► Spark
              │
              ▼
        ┌──────────┐
@@ -53,7 +53,7 @@ streaming-with-flink-spark/
 │   └── README.md               # Producer documentation
 ├── shared/
 │   ├── data-generator/         # Onboarding & utilities
-│   │   ├── start-producer.sh   # 🌟 New user script
+│   │   ├── start-producer.sh   
 │   │   ├── README.md
 │   │   └── QUICK_REFERENCE.md
 │   └── tests/

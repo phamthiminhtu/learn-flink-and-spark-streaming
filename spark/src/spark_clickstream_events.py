@@ -61,15 +61,6 @@ events = df.select(
         col("time_window.end").alias("event_timestamp_end")
     ).drop("time_window")
 
-# # Simple aggregation: count events by type
-# event_counts = events \
-#     .withWatermark("event_timestamp", "10 minutes") \
-#     .groupBy(
-#         window(col("event_timestamp"), "5 minutes"),
-#         col("event_type")
-#     ) \
-#     .count()
-
 # Write to MinIO Delta Lake (S3-compatible storage) with checkpointing
 print("🔄 Starting streaming query with Delta Lake on MinIO...")
 print("   💾 Delta Output: s3a://lakehouse/clickstream-counts-delta/")
@@ -85,19 +76,6 @@ query = events.writeStream \
     .option("checkpointLocation", "s3a://checkpoints/clickstream-events-delta/") \
     .trigger(processingTime='30 seconds') \
     .start()  # Append mode: waits for watermark to finalize windows
-
-# Alternative: Real-time running totals (no windows)
-# Uncomment to use update mode without windows:
-#
-# event_counts_realtime = events.groupBy(col("event_type")).count()
-#
-# query = event_counts_realtime.writeStream \
-#     .format("delta") \
-#     .outputMode("update") \            # ← Update works without windows
-#     .option("path", "s3a://lakehouse/clickstream-realtime/") \
-#     .option("checkpointLocation", "s3a://checkpoints/clickstream-realtime/") \
-#     .trigger(processingTime='10 seconds') \
-#     .start()
 
 try:
     query.awaitTermination()

@@ -1,4 +1,4 @@
-# Streaming with Flink & Spark
+# Learning Flink & Spark
 
 A repo to explore different streaming mechanisms: Kafka, Flink, and Spark.
 The main goal is to understand the core components of Flink and Spark in streaming pipelines and how each serves a different purpose.

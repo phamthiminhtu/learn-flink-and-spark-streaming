@@ -18,7 +18,7 @@ docker compose up -d
 ```
 - Submit Spark job
 ```bash
-./spark/docker-run.sh submit
+       ./spark/docker-run.sh submit spark_clickstream_events.py
 ```
 - Check if data is streamed into MinIO at http://localhost:9001/browser/lakehouse:
 

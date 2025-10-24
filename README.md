@@ -3,13 +3,21 @@
 A repo to explore different streaming mechanisms: Kafka, Flink, and Spark.
 The main goal is to understand the core components of Flink and Spark in streaming pipelines and how each serves a different purpose.
 
-## What to learn next
+## Learning points
 
 1. Start services ✅
 2. Generate test data ✅
-3. Build Spark micro batch jobs (30s latency) ✅
-4. Build Flink streaming jobs (real-time processing)
-5. Add monitoring (Prometheus/Grafana)
+3. Build Spark micro batch jobs (30s latency): event -> kafka topic -> spark streaming -> S3 (MinIO) ✅
+```bash
+       # setup
+       docker compose up -d
+       # simulate events
+       docker exec -it clickstream-producer python3 produce-test-events.py
+
+       # 
+
+```
+4. Build Flink streaming jobs (real-time processing): event -> kafka topic -> flink -> postgres ✅
 
 ## How it works
 

@@ -1,0 +1,107 @@
+# Flink Configuration for Docker Compose Setup
+# This file configures the Flink cluster running in containers
+
+# ==============================================================================
+# JobManager Configuration
+# ==============================================================================
+jobmanager.rpc.address: flink-jobmanager
+jobmanager.rpc.port: 6123
+jobmanager.memory.process.size: 1600m
+jobmanager.bind-host: 0.0.0.0
+
+# ==============================================================================
+# TaskManager Configuration
+# ==============================================================================
+taskmanager.memory.process.size: 1728m
+taskmanager.numberOfTaskSlots: 2
+taskmanager.bind-host: 0.0.0.0
+taskmanager.host: flink-taskmanager
+
+# ==============================================================================
+# Parallelism Configuration
+# ==============================================================================
+parallelism.default: 1
+
+# ==============================================================================
+# Checkpointing & State Backend
+# ==============================================================================
+# Use filesystem state backend (for S3/MinIO)
+state.backend: filesystem
+
+# Checkpoint storage on MinIO (S3-compatible)
+state.checkpoints.dir: s3://checkpoints/flink/
+state.savepoints.dir: s3://checkpoints/flink-savepoints/
+
+# Checkpoint interval (30 seconds)
+execution.checkpointing.interval: 30s
+
+# Checkpointing mode (exactly-once guarantees)
+execution.checkpointing.mode: EXACTLY_ONCE
+
+# Minimum pause between checkpoints
+execution.checkpointing.min-pause: 10s
+
+# Checkpoint timeout
+execution.checkpointing.timeout: 60s
+
+# Max concurrent checkpoints
+execution.checkpointing.max-concurrent-checkpoints: 1
+
+# ==============================================================================
+# S3/MinIO Configuration
+# ==============================================================================
+s3.endpoint: http://minio:9000
+s3.access-key: admin
+s3.secret-key: password123
+s3.path.style.access: true
+
+# S3 Performance & Reliability Settings
+# Increase buffer size and timeout for better streaming performance
+s3.upload.max.concurrent.uploads: 5
+s3.multipart.upload.min.part.size: 5242880  # 5 MB minimum part size
+s3.entropy.key: /_entropy_/  # Add entropy to prevent hotspotting
+
+# ==============================================================================
+# Web UI Configuration
+# ==============================================================================
+web.submit.enable: true
+web.cancel.enable: true
+web.upload.dir: /tmp/flink-web-ui
+
+# ==============================================================================
+# Restart Strategy
+# ==============================================================================
+restart-strategy: fixed-delay
+restart-strategy.fixed-delay.attempts: 3
+restart-strategy.fixed-delay.delay: 10s
+
+# ==============================================================================
+# Metrics & Monitoring
+# ==============================================================================
+metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+metrics.reporter.prom.port: 9249
+
+# ==============================================================================
+# Network Configuration
+# ==============================================================================
+# Network buffer settings (memory for data exchange)
+taskmanager.network.memory.fraction: 0.1
+taskmanager.network.memory.min: 64mb
+taskmanager.network.memory.max: 1gb
+
+# ==============================================================================
+# Advanced Tuning
+# ==============================================================================
+# Execution mode
+execution.runtime-mode: STREAMING
+
+# Slot sharing
+cluster.evenly-spread-out-slots: false
+
+# ==============================================================================
+# Scheduler Configuration
+# ==============================================================================
+# Use Default scheduler instead of Adaptive to avoid fine-grained resource management
+# This fixes "ResourceProfile{UNKNOWN}" matching errors
+# Valid values in Flink 1.18: Ng, Default, Adaptive, AdaptiveBatch
+jobmanager.scheduler: Default

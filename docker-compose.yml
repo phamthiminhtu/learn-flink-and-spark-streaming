@@ -177,6 +177,124 @@ services:
       - streaming-network
 
   # ============================================
+  # POSTGRESQL DATABASE
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: streaming
+      POSTGRES_USER: flink
+      POSTGRES_PASSWORD: flink123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - streaming-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flink -d streaming"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # FLINK CLUSTER
+  # ============================================
+  flink-jobmanager:
+    image: flink:1.18.0-java11
+    container_name: flink-jobmanager
+    hostname: flink-jobmanager
+    ports:
+      - "8082:8081"  # Web UI (changed to 8082 to avoid conflict with schema-registry)
+      - "6123:6123"  # RPC
+    command: >
+      bash -c "
+      mkdir -p /opt/flink/plugins/s3-fs-hadoop &&
+      cp /opt/flink/opt/flink-s3-fs-hadoop-*.jar /opt/flink/plugins/s3-fs-hadoop/ &&
+      /docker-entrypoint.sh jobmanager
+      "
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      S3_ENDPOINT: "http://minio:9000"
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.rpc.port: 6123
+        jobmanager.memory.process.size: 1600m
+        taskmanager.numberOfTaskSlots: 2
+        parallelism.default: 1
+
+        # Checkpointing
+        state.backend: filesystem
+        state.checkpoints.dir: s3://checkpoints/flink/
+        state.savepoints.dir: s3://checkpoints/flink-savepoints/
+        execution.checkpointing.interval: 30s
+        execution.checkpointing.mode: EXACTLY_ONCE
+
+        # S3/MinIO Configuration
+        s3.endpoint: http://minio:9000
+        s3.access-key: admin
+        s3.secret-key: password123
+        s3.path.style.access: true
+
+        # Web UI
+        web.submit.enable: true
+        web.cancel.enable: true
+    volumes:
+      - ./flink/target:/opt/flink/usrlib
+      - ./config/flink-conf.yaml:/opt/flink/conf/flink-conf.yaml:ro
+      - flink-checkpoints:/tmp/flink-checkpoints
+    networks:
+      - streaming-network
+    depends_on:
+      - minio
+      - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/overview || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  flink-taskmanager:
+    image: flink:1.18.0-java11
+    # Note: container_name removed to allow scaling
+    # Container names will be auto-generated: flink-taskmanager-1, flink-taskmanager-2, etc.
+    depends_on:
+      flink-jobmanager:
+        condition: service_healthy
+    command: >
+      bash -c "
+      mkdir -p /opt/flink/plugins/s3-fs-hadoop &&
+      cp /opt/flink/opt/flink-s3-fs-hadoop-*.jar /opt/flink/plugins/s3-fs-hadoop/ &&
+      /docker-entrypoint.sh taskmanager
+      "
+    deploy:
+      replicas: 2  # Run 2 task managers for parallelism
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      S3_ENDPOINT: "http://minio:9000"
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.rpc.port: 6123
+        taskmanager.memory.process.size: 1728m
+        taskmanager.numberOfTaskSlots: 2
+
+        # S3/MinIO Configuration
+        s3.endpoint: http://minio:9000
+        s3.access-key: admin
+        s3.secret-key: password123
+        s3.path.style.access: true
+    volumes:
+      - ./flink/target:/opt/flink/usrlib
+      - flink-checkpoints:/tmp/flink-checkpoints
+    networks:
+      - streaming-network
+
+  # ============================================
   # CLICKSTREAM EVENT PRODUCER
   # ============================================
   producer:
@@ -206,6 +324,8 @@ volumes:
   minio-data:
   prometheus-data:
   grafana-data:
+  flink-checkpoints:
+  postgres-data:
 
 networks:
   streaming-network:

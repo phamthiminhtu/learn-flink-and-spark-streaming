@@ -11,3 +11,5 @@
 **/.pytest_cache/v/cache/stepcache/stepcache.json
 **/.pytest_cache/v/cache/stepcache/stepcache.json.json
 **/.pytest_cache/v/cache/stepcache/stepcache.json.json.json
+**/*.log
+**/target/*

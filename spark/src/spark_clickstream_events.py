@@ -8,24 +8,20 @@ from pyspark.sql.functions import col, from_json, window, to_timestamp
 from schema_utils import load_avro_schema_as_spark
 
 # Initialize Spark with Kafka, S3 (MinIO), and Delta Lake dependencies
+# Using compatible versions to avoid ClassCastException with S3
+# Dependencies are provided via spark-submit --packages
 spark = SparkSession.builder \
     .appName("SparkKafkaConnectionTest") \
-    .config("spark.jars.packages",
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,"
-            "org.apache.hadoop:hadoop-aws:3.3.4,"
-            "io.delta:delta-spark_2.12:3.2.0") \
-    .config("spark.jars.repositories", "https://repo1.maven.org/maven2/") \
-    .config("spark.jars.ivy", "/tmp/.ivy2") \
     .config("spark.sql.streaming.schemaInference", "true") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-    .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
+    .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
     .config("spark.hadoop.fs.s3a.access.key", "admin") \
     .config("spark.hadoop.fs.s3a.secret.key", "password123") \
     .config("spark.hadoop.fs.s3a.path.style.access", "true") \
     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+    .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider") \
     .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
-    .master("local[*]") \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("WARN")
@@ -33,7 +29,7 @@ spark.sparkContext.setLogLevel("WARN")
 
 # Load schema from Avro definition
 # This ensures schema stays in sync with the Avro schema file
-schema = load_avro_schema_as_spark("data/schemas/clickstream-event-readable.avsc")
+schema = load_avro_schema_as_spark("/opt/spark-data/schemas/clickstream-event-readable.avsc")
 
 print("📋 Loaded schema from Avro:")
 print(schema)
@@ -43,7 +39,7 @@ print("📖 Reading from Kafka topic: clickstream")
 # Read from Kafka
 df = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("kafka.bootstrap.servers", "kafka:29092") \
     .option("subscribe", "clickstream") \
     .option("startingOffsets", "earliest") \
     .load()

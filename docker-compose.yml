@@ -202,6 +202,80 @@ services:
       retries: 5
 
   # ============================================
+  # APACHE SPARK CLUSTER
+  # ============================================
+  spark-master:
+    image: apache/spark:3.5.0-python3
+    container_name: spark-master
+    hostname: spark-master
+    user: root
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      # S3/MinIO Configuration
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password123
+      - AWS_REGION=us-east-1
+    command: >
+      bash -c "/opt/spark/sbin/start-master.sh && tail -f /dev/null"
+    ports:
+      - "8083:8080"  # Spark Master Web UI (changed from 8080 to avoid conflict)
+      - "7077:7077"  # Spark Master Port
+    volumes:
+      - ./spark:/opt/spark-apps
+      - ./data:/opt/spark-data
+    networks:
+      - streaming-network
+
+  spark-worker-1:
+    image: apache/spark:3.5.0-python3
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    user: root
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2G
+      # S3/MinIO Configuration
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password123
+      - AWS_REGION=us-east-1
+    command: >
+      bash -c "/opt/spark/sbin/start-worker.sh spark://spark-master:7077 && tail -f /dev/null"
+    volumes:
+      - ./spark:/opt/spark-apps
+      - ./data:/opt/spark-data
+    depends_on:
+      - spark-master
+    networks:
+      - streaming-network
+
+  spark-worker-2:
+    image: apache/spark:3.5.0-python3
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    user: root
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2G
+      # S3/MinIO Configuration
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password123
+      - AWS_REGION=us-east-1
+    command: >
+      bash -c "/opt/spark/sbin/start-worker.sh spark://spark-master:7077 && tail -f /dev/null"
+    volumes:
+      - ./spark:/opt/spark-apps
+      - ./data:/opt/spark-data
+    depends_on:
+      - spark-master
+    networks:
+      - streaming-network
+
+  # ============================================
   # FLINK CLUSTER
   # ============================================
   flink-jobmanager:
@@ -326,6 +400,9 @@ volumes:
   grafana-data:
   flink-checkpoints:
   postgres-data:
+  spark-logs:
+  spark-worker-1-logs:
+  spark-worker-2-logs:
 
 networks:
   streaming-network:

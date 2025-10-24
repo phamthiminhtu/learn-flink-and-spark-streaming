@@ -8,16 +8,44 @@ The main goal is to understand the core components of Flink and Spark in streami
 1. Start services ✅
 2. Generate test data ✅
 3. Build Spark micro batch jobs (30s latency): event -> kafka topic -> spark streaming -> S3 (MinIO) ✅
+- Set up: 
 ```bash
-       # setup
-       docker compose up -d
-       # simulate events
-       docker exec -it clickstream-producer python3 produce-test-events.py
-
-       # 
-
+docker compose up -d
 ```
+- Simulate events: 
+```bash
+       docker exec -it clickstream-producer python3 produce-test-events.py
+```
+- Submit Spark job
+```bash
+./spark/docker-run.sh submit
+```
+- Check if data is streamed into MinIO at http://localhost:9001/browser/lakehouse:
+
 4. Build Flink streaming jobs (real-time processing): event -> kafka topic -> flink -> postgres ✅
+- Set up: 
+```bash
+docker compose up -d
+```
+
+- Simulate events: 
+```bash
+       docker exec -it clickstream-producer python3 produce-test-events.py
+```
+- Submit Flink job
+```bash
+./flink/docker-run.sh submit
+```
+- Check if data is streamed into Postgres db:
+```bash
+docker exec -it postgres psql -U flink -d streaming
+```
+
+```sql
+
+       SELECT COUNT(*) FROM clickstream_events;
+       SELECT * FROM clickstream_events ORDER BY event_timestamp DESC LIMIT 10;
+```
 
 ## How it works
 

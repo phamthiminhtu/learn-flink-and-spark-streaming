@@ -1,8 +1,10 @@
 # Learning Flink & Spark
 
 A repo to explore different streaming mechanisms: Kafka, Flink, and Spark.
+
 The main goal is to understand the core components of Flink and Spark in streaming pipelines and how each serves a different purpose.
-Bonus point: got my elementary Java revised lol
+
+Bonus point: got my elementary Java revised lol.
 
 ## Learning points
 
@@ -19,12 +21,12 @@ Bonus point: got my elementary Java revised lol
 # Submit Spark job
        ./spark/docker-run.sh submit spark_clickstream_events.py
 
-# Check if data is streamed into MinIO at: http://localhost:9001/browser/lakehouse:
+# Check if data is streamed into MinIO at: http://localhost:9001/browser/lakehouse
 ```
-4. Build Flink streaming jobs (real-time processing): event -> kafka topic -> flink -> postgres ✅
+4. Build Flink streaming jobs (real-time processing): event -> Kafka topic -> Flink -> Postgres ✅
 ```
 # Set up: 
-docker compose up -d
+       docker compose up -d
 
 # Simulate events: 
 

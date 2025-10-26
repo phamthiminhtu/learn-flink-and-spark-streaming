@@ -8,9 +8,8 @@ Bonus point: got my elementary Java revised lol.
 
 ## Learning points
 
-1. Start services ✅
-2. Generate test data ✅
-3. Build Spark micro batch jobs (30s latency): event -> kafka topic -> spark streaming -> S3 (MinIO) ✅
+1. Generate and publish simulated event data with Kafka ✅
+2. Build Spark micro batch jobs (30s latency): event -> kafka topic -> spark streaming -> S3 (MinIO) ✅
 ```
 # Set up
        docker compose up -d
@@ -23,7 +22,7 @@ Bonus point: got my elementary Java revised lol.
 
 # Check if data is streamed into MinIO at: http://localhost:9001/browser/lakehouse
 ```
-4. Build Flink streaming jobs (real-time processing): event -> Kafka topic -> Flink -> Postgres ✅
+3. Build Flink streaming jobs (real-time processing): event -> Kafka topic -> Flink -> Postgres ✅
 ```
 # Set up: 
        docker compose up -d

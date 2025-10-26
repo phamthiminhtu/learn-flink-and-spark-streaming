@@ -6,6 +6,28 @@ The main goal is to understand the core components of Flink and Spark in streami
 
 Bonus point: got my elementary Java revised lol.
 
+## How it works
+
+```
+┌──────────────┐
+│   Producer   │ → Generates realistic clickstream events
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│    Kafka     │ → Message broker
+└──────┬───────┘
+       │
+       ├─► Flink
+       │
+       └─► Spark
+             │
+             ▼
+       ┌──────────┐
+       │  MinIO   │ → Data lake storage
+       └──────────┘
+```
+
 ## Learning points
 
 1. Generate and publish simulated event data with Kafka ✅
@@ -45,27 +67,6 @@ Bonus point: got my elementary Java revised lol.
        SELECT * FROM clickstream_events ORDER BY event_timestamp DESC LIMIT 10;
 ```
 
-## How it works
-
-```
-┌──────────────┐
-│   Producer   │ → Generates realistic clickstream events
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│    Kafka     │ → Message broker
-└──────┬───────┘
-       │
-       ├─► Flink
-       │
-       └─► Spark
-             │
-             ▼
-       ┌──────────┐
-       │  MinIO   │ → Data lake storage
-       └──────────┘
-```
 
 ## Project Structure
 

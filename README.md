@@ -30,7 +30,7 @@ Bonus point: got my elementary Java revised lol.
 
 ## Learning points
 
-1. Generate and publish simulated event data with Kafka ✅
+1. Generate and publish simulated event data to Kafka ✅
 2. Build Spark micro batch jobs (30s latency): event -> kafka topic -> spark streaming -> S3 (MinIO) ✅
 ```
 # Set up

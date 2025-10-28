@@ -1,0 +1,17 @@
+# Tumbling Window Exercise Job Configuration
+
+# Job identifier
+job_name: tumbling_window_exercise
+
+# Java main class
+main_class: com.streaming.flink.exercises.TumblingWindowExercise
+
+# Kafka configuration
+kafka:
+  bootstrap_servers: kafka:29092
+  topic: clickstream
+  group_id: tumbling-window-exercise
+
+# Flink job parameters
+job_params:
+  parallelism: 2

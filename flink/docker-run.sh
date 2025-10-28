@@ -14,7 +14,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 JAR_FILE="target/flink-clickstream-1.0-SNAPSHOT.jar"
-MAIN_CLASS="com.streaming.flink.ClickstreamProcessor"
+MAIN_CLASS=""
+CONFIG_DIR="jobs/active"
+SELECTED_CONFIG=""
 
 function print_header() {
     echo -e "${BLUE}========================================${NC}"
@@ -36,6 +38,113 @@ function print_info() {
 
 function print_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+function parse_yaml() {
+    local yaml_file=$1
+    local query=$2
+
+    # Use yq via Docker to parse YAML
+    docker run --rm -v "$(pwd):/workdir" mikefarah/yq:4 \
+        eval "$query" "/workdir/$yaml_file" 2>/dev/null || echo ""
+}
+
+function list_active_configs() {
+    print_header "Available Job Configurations"
+
+    if [ ! -d "$CONFIG_DIR" ]; then
+        print_error "Config directory not found: $CONFIG_DIR"
+        exit 1
+    fi
+
+    local configs=($(ls "$CONFIG_DIR"/*.yml 2>/dev/null))
+
+    if [ ${#configs[@]} -eq 0 ]; then
+        print_error "No job configurations found in $CONFIG_DIR"
+        echo "Please create a .yml file in $CONFIG_DIR with job configuration"
+        exit 1
+    fi
+
+    echo ""
+    local i=1
+    for config in "${configs[@]}"; do
+        local job_name=$(parse_yaml "$config" ".job_name")
+        local main_class=$(parse_yaml "$config" ".main_class")
+        echo -e "${GREEN}[$i]${NC} $(basename $config)"
+        echo -e "    Job: ${CYAN}$job_name${NC}"
+        echo -e "    Class: ${CYAN}$main_class${NC}"
+        echo ""
+        i=$((i+1))
+    done
+}
+
+function select_config() {
+    local configs=($(ls "$CONFIG_DIR"/*.yml 2>/dev/null))
+
+    if [ ${#configs[@]} -eq 0 ]; then
+        print_error "No job configurations found in $CONFIG_DIR"
+        exit 1
+    fi
+
+    # If only one config, use it automatically
+    if [ ${#configs[@]} -eq 1 ]; then
+        SELECTED_CONFIG="${configs[0]}"
+        local job_name=$(parse_yaml "$SELECTED_CONFIG" ".job_name")
+        print_info "Auto-selecting: $job_name ($(basename $SELECTED_CONFIG))"
+        return
+    fi
+
+    # Multiple configs - show list and prompt
+    list_active_configs
+
+    echo -e "${YELLOW}Select a job configuration [1-${#configs[@]}]:${NC} "
+    read -r selection
+
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt ${#configs[@]} ]; then
+        print_error "Invalid selection"
+        exit 1
+    fi
+
+    SELECTED_CONFIG="${configs[$((selection-1))]}"
+    local job_name=$(parse_yaml "$SELECTED_CONFIG" ".job_name")
+    print_success "Selected: $job_name ($(basename $SELECTED_CONFIG))"
+}
+
+function load_config() {
+    if [ -z "$SELECTED_CONFIG" ]; then
+        select_config
+    fi
+
+    print_header "Loading Configuration"
+
+    # Parse configuration values
+    MAIN_CLASS=$(parse_yaml "$SELECTED_CONFIG" ".main_class")
+    local kafka_servers=$(parse_yaml "$SELECTED_CONFIG" ".kafka.bootstrap_servers")
+    local kafka_topic=$(parse_yaml "$SELECTED_CONFIG" ".kafka.topic")
+    local output_path=$(parse_yaml "$SELECTED_CONFIG" ".storage.output_path")
+    local checkpoint_path=$(parse_yaml "$SELECTED_CONFIG" ".storage.checkpoint_path")
+    local parallelism=$(parse_yaml "$SELECTED_CONFIG" ".job_params.parallelism")
+
+    # Display loaded configuration
+    echo -e "${CYAN}Configuration loaded from: ${NC}$(basename $SELECTED_CONFIG)"
+    echo -e "${CYAN}Main Class:${NC} $MAIN_CLASS"
+    [ -n "$kafka_servers" ] && echo -e "${CYAN}Kafka Servers:${NC} $kafka_servers"
+    [ -n "$kafka_topic" ] && echo -e "${CYAN}Kafka Topic:${NC} $kafka_topic"
+    [ -n "$output_path" ] && echo -e "${CYAN}Output Path:${NC} $output_path"
+    [ -n "$checkpoint_path" ] && echo -e "${CYAN}Checkpoint Path:${NC} $checkpoint_path"
+    [ -n "$parallelism" ] && echo -e "${CYAN}Parallelism:${NC} $parallelism"
+    echo ""
+
+    # Export environment variables for the Flink job to use
+    [ -n "$kafka_servers" ] && export KAFKA_BOOTSTRAP_SERVERS="$kafka_servers"
+    [ -n "$kafka_topic" ] && export KAFKA_TOPIC="$kafka_topic"
+    [ -n "$output_path" ] && export OUTPUT_PATH="$output_path"
+    [ -n "$checkpoint_path" ] && export CHECKPOINT_PATH="$checkpoint_path"
+
+    if [ -z "$MAIN_CLASS" ]; then
+        print_error "main_class not found in configuration file"
+        exit 1
+    fi
 }
 
 function check_docker() {
@@ -103,6 +212,9 @@ function build_jar() {
 }
 
 function submit_job() {
+    # Load configuration from YAML file
+    load_config
+
     print_header "Submitting Job to Flink Cluster"
 
     print_info "JobManager UI: ${CYAN}http://localhost:8082${NC}"
@@ -188,17 +300,24 @@ function show_help() {
     echo "Commands:"
     echo "  build          Build the JAR file"
     echo "  submit         Build and submit job to Flink cluster"
+    echo "  config         List available job configurations"
     echo "  list           List running jobs"
     echo "  cancel <id>    Cancel a specific job"
     echo "  logs           Show Flink JobManager logs"
     echo "  status         Show cluster status"
     echo "  help           Show this help message"
     echo ""
+    echo "Configuration:"
+    echo "  - Active jobs:   ${CYAN}jobs/active/*.yml${NC}"
+    echo "  - Inactive jobs: ${CYAN}jobs/inactive/*.yml${NC}"
+    echo "  - Move YAML files between folders to enable/disable jobs"
+    echo ""
     echo "Full Workflow:"
     echo "  1. Start services:   ${GREEN}docker-compose up -d${NC}"
-    echo "  2. Submit job:       ${GREEN}./docker-run.sh submit${NC}"
-    echo "  3. View UI:          ${CYAN}http://localhost:8082${NC}"
-    echo "  4. Check output:     ${GREEN}docker exec -it minio mc ls myminio/lakehouse/${NC}"
+    echo "  2. Configure job:    ${GREEN}Edit jobs/active/*.yml${NC}"
+    echo "  3. Submit job:       ${GREEN}./docker-run.sh submit${NC}"
+    echo "  4. View UI:          ${CYAN}http://localhost:8082${NC}"
+    echo "  5. Check output:     ${GREEN}docker exec -it minio mc ls myminio/lakehouse/${NC}"
 }
 
 function show_status() {
@@ -231,6 +350,9 @@ case "${1:-submit}" in
         check_flink_cluster
         build_jar
         submit_job
+        ;;
+    config)
+        list_active_configs
         ;;
     list)
         check_flink_cluster

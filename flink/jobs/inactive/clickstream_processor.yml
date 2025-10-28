@@ -1,0 +1,22 @@
+# Clickstream Processor Job Configuration
+
+# Job identifier
+job_name: clickstream_processor
+
+# Java main class
+main_class: com.streaming.flink.ClickstreamProcessor
+
+# Kafka configuration
+kafka:
+  bootstrap_servers: kafka:29092
+  topic: clickstream
+  group_id: flink-clickstream-processor
+
+# Storage paths (S3/MinIO)
+storage:
+  output_path: s3://lakehouse/clickstream-events-flink/
+  checkpoint_path: s3://checkpoints/clickstream-events-flink/
+
+# Flink job parameters
+job_params:
+  parallelism: 1

@@ -6,6 +6,18 @@ A production-ready Apache Flink streaming application that processes clickstream
 
 This Flink job demonstrates core streaming concepts and best practices:
 
+**Quick start:**
+```bash
+# From project root
+docker-compose up -d
+
+# Submit job
+cd flink/
+./docker-run.sh submit
+
+# View UI at http://localhost:8082
+```
+
 ### Key Flink Concepts Implemented
 
 1. **DataStream API**
@@ -118,18 +130,6 @@ You can run this Flink job in two ways:
 ### Docker Compose (Recommended)
 
 See [DOCKER.md](DOCKER.md) for complete Docker deployment guide.
-
-**Quick start:**
-```bash
-# From project root
-docker-compose up -d
-
-# Submit job
-cd flink/
-./docker-run.sh submit
-
-# View UI at http://localhost:8082
-```
 
 ### Local Development
 

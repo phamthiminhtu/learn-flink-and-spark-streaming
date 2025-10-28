@@ -57,7 +57,7 @@ Bonus point: got my elementary Java revised lol.
        docker exec -it clickstream-producer python3 produce-test-events.py
 # Submit Flink job
        cd flink
-       ./docker-run.sh submit <job name>
+       ./docker-run.sh submit # jobs in folder `flink/jobs/active` will be run
 
 # Check if data is streamed into Postgres db:
 
@@ -69,6 +69,7 @@ Bonus point: got my elementary Java revised lol.
        SELECT COUNT(*) FROM clickstream_events;
        SELECT * FROM clickstream_events ORDER BY event_timestamp DESC LIMIT 10;
 ```
+- Refer to [Flink quick start](https://github.com/phamthiminhtu/learn-flink-and-spark-streaming/tree/master/flink#overview) for more details.
 
 
 ## Project Structure
@@ -116,29 +117,3 @@ streaming-with-flink-spark/
 - Getting started: [set up and generate mock data](doc/quick_start.md#quick-start)
 - [Common commands](doc/quick_start.md#common-commands)
 - [Common issues](doc/quick_start.md#common-issues)
-
-## Learning Windowing Concepts
-
-This repo includes a comprehensive learning path for stream processing windows:
-
-**📚 Start Here**: [Windowing Syllabus](doc/windowing-syllabus.md)
-- Complete course covering tumbling, sliding, and session windows
-- Theory + hands-on exercises for both Flink and Spark
-- Real-world patterns and best practices
-
-**⚡ Quick Reference**: [Windowing Cheat Sheet](doc/windowing-quick-reference.md)
-- Code snippets for common patterns
-- Performance tuning tips
-- Debugging guide
-
-**💻 Exercises**: [exercises/README.md](exercises/README.md)
-- Starter code and complete solutions
-- Session analytics deliverable (30-min gap-based windowing)
-- Late data handling and watermark strategies
-
-### Key Topics Covered
-- **Window Types**: Tumbling, Sliding, Session
-- **Watermark Strategies**: Late data handling, allowed lateness
-- **Flink**: WindowAssigner, Trigger, Evictor, ProcessWindowFunction
-- **Spark**: groupBy + window(), watermark(), custom session logic
-- **Real-World Project**: E-commerce session analytics with gap-based windowing

@@ -19,6 +19,11 @@ Bonus point: got my elementary Java revised lol.
 └──────┬───────┘
        │
        ├─► Flink
+       │     │
+       │     ▼
+       │  ┌────────────┐
+       │  │ PostgreSQL │ → Real-time analytics
+       │  └────────────┘
        │
        └─► Spark
              │

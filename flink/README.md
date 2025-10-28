@@ -7,6 +7,7 @@ A production-ready Apache Flink streaming application that processes clickstream
 This Flink job demonstrates core streaming concepts and best practices:
 
 **Quick start:**
+
 ```bash
 # From project root
 docker-compose up -d
@@ -17,6 +18,8 @@ cd flink/
 
 # View UI at http://localhost:8082
 ```
+
+Note: Move jobs to `flink/jobs/active` to get them run with `./docker-run.sh submit` command.
 
 ### Key Flink Concepts Implemented
 

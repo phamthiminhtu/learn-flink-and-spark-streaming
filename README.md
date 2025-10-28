@@ -40,7 +40,10 @@ Bonus point: got my elementary Java revised lol.
        docker exec -it clickstream-producer python3 produce-test-events.py
 
 # Submit Spark job
-       ./spark/docker-run.sh submit spark_clickstream_events.py
+       ./spark/docker-run.sh submit <job name>
+       
+       # example
+       ./spark/docker-run.sh submit jobs/sliding_window_exercise.py
 
 # Check if data is streamed into MinIO at: http://localhost:9001/browser/lakehouse
 ```
@@ -53,8 +56,8 @@ Bonus point: got my elementary Java revised lol.
 
        docker exec -it clickstream-producer python3 produce-test-events.py
 # Submit Flink job
-
-       ./flink/docker-run.sh submit
+       cd flink
+       ./docker-run.sh submit <job name>
 
 # Check if data is streamed into Postgres db:
 
